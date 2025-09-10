@@ -216,9 +216,25 @@ export async function readUsers({
       message: `UserOps.readUsers: start`,
       state,
     });
-    const { result } = await getUsers({ state });
+    let allUsers: UserSkeleton[] = [];
+    let pageCookie = undefined;
+    let remainingUsers = 0;
+    do {
+      const { result, pagedResultsCookie, remainingPagedResults } =
+        await getUsers({
+          state,
+          pageCookie,
+        });
+      allUsers = allUsers.concat(result);
+      pageCookie = pagedResultsCookie;
+      remainingUsers = remainingPagedResults;
+      debugMessage({
+        message: `UserOps.readUsers: fetched ${result.length} users. Remaining: ${remainingUsers}`,
+        state,
+      });
+    } while (remainingUsers > 0);
     debugMessage({ message: `UserOps.readUsers: end`, state });
-    return result;
+    return allUsers;
   } catch (error) {
     throw new FrodoError(`Error reading users`, error);
   }

@@ -35,6 +35,8 @@ const groupsURLTemplate = '%s/json%s/groups?_queryFilter=true';
 const configApiVersion = 'protocol=2.0,resource=1.0';
 const identityApiVersion = 'protocol=2.0,resource=4.0';
 
+export const DEFAULT_PAGE_SIZE: number = 1000;
+
 function getConfigApiConfig() {
   return {
     apiVersion: configApiVersion,
@@ -135,25 +137,38 @@ export async function getUser({
 }
 
 /**
- * Get all users
- * @returns {Promise<PagedResult<UserSkeleton>>} a promise that resolves to an array of user objects
+ * Get all users with pagination.
+ * @param {object} params - The function parameters.
+ * @param {State} params.state - The state object.
+ * @param {string} [params.pageCookie] - The paged results cookie for subsequent requests.
+ * @param {number} [params.pageSize] - The number of results per page.
+ * @returns {Promise<PagedResult<UserSkeleton>>} a promise that resolves to a paged result of user objects.
  */
 export async function getUsers({
   state,
+  pageCookie,
+  pageSize = DEFAULT_PAGE_SIZE,
 }: {
   state: State;
+  pageCookie?: string;
+  pageSize?: number;
 }): Promise<PagedResult<UserSkeleton>> {
-  const urlString = util.format(
+  let urlString = util.format(
     usersURLTemplate,
     state.getHost(),
     getCurrentRealmPath(state)
   );
+  urlString += `&_pageSize=${pageSize}`;
+  if (pageCookie) {
+    urlString += `&_pagedResultsCookie=${encodeURIComponent(pageCookie)}`;
+  }
   const { data } = await generateAmApi({
     resource: getIdentityApiConfig(),
     state,
   }).get(urlString, {
     withCredentials: true,
   });
+
   return data;
 }
 
